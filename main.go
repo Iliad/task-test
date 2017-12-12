@@ -27,6 +27,7 @@ var (
 
 func main() {
 	flag.StringVar(&host, "host", host, "Main server host name")
+	flag.Parse()
 
 	r := mux.NewRouter()
 
