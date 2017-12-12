@@ -8,10 +8,12 @@ import (
 	"math"
 	"strconv"
 	"fmt"
+	"flag"
+	"sync"
 
 	"github.com/Iliad/task-test/model"
 	"github.com/gorilla/mux"
-	"flag"
+
 )
 
 var (
@@ -22,8 +24,22 @@ var (
 )
 
 var (
-	Auth map[string]string
+	auth map[string]string
+	serviceMutex sync.Mutex
 )
+
+//Безопасное получение и установка пароля
+func setPassword(name string, password string) {
+	serviceMutex.Lock()
+	defer serviceMutex.Unlock()
+	auth[name] = password
+}
+
+func getPassword(name string) string {
+	serviceMutex.Lock()
+	defer serviceMutex.Unlock()
+	return auth[name]
+}
 
 func main() {
 	flag.StringVar(&host, "host", host, "Main server host name")
@@ -47,7 +63,7 @@ func main() {
 }
 
 func init() {
-	Auth = make(map[string]string)
+	auth = make(map[string]string)
 }
 
 //Хостим главную страницу
@@ -73,13 +89,13 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 
 //Проверка логина пользователя
 func checkLogin (login string, password string) error {
-	if Auth[login] == password {
+	if getPassword(login) == password {
 		return nil
 	}
 	user := &model.User{}
 	err := user.Get(login, password)
 	if err == nil {
-		Auth[login] = password
+		setPassword(login, password)
 		return nil
 	} else {
 		return err
@@ -111,26 +127,32 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("pass")
 		newPassword := r.FormValue("newPass")
 
-		err := checkLogin(login , password)
-		if err != nil {
-			log.Printf("Login error (User: %s): %s", login, err)
-			w.WriteHeader(http.StatusForbidden)
-			return
+		if newPassword != "" {
+			err := checkLogin(login , password)
+			if err != nil {
+				log.Printf("Login error (User: %s): %s", login, err)
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			log.Printf("Login succesfull (User: %s)", login)
+
+			user := &model.User{}
+			err = user.ChangePassword(login, newPassword)
+			if err != nil {
+				log.Printf("Error changing password (User: %s): %s", login, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			setPassword(login, newPassword)
+
+			log.Printf("Password changed (User: %s)", login)
+			w.WriteHeader(http.StatusOK)
+		} else {
+			log.Printf("Error changing password (User: %s): %s", login, "empty new password")
+			w.WriteHeader(http.StatusBadRequest)
 		}
-		log.Printf("Login succesfull (User: %s)", login)
 
-		user := &model.User{}
-		err = user.ChangePassword(login, newPassword)
-		if err != nil {
-			log.Printf("Error changing password (User: %s): %s", login, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		Auth[login] = newPassword
-
-		log.Printf("Password changed (User: %s)", login)
-		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -165,7 +187,6 @@ func doWork(w http.ResponseWriter, r *http.Request) {
 			w.Write(reverse(value))
 		}
 		log.Printf("Work complete (User: %s)", login)
-		w.WriteHeader(http.StatusOK)
 	}
 }
 
