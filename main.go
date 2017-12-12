@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"fmt"
 
-	"./model"
+	"github.com/Iliad/task-test/model"
 	"github.com/gorilla/mux"
 	"flag"
 )
