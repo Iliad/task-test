@@ -29,5 +29,7 @@ func (dc *DBConfig) Read() error {
 	dc.DBPass = configIni["pass"]
 	dc.DBName = configIni["name"]
 	dc.DBHost = configIni["host"]
+
+	log.Println("Config loaded")
 	return nil
 }

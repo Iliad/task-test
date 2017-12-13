@@ -19,7 +19,7 @@ import (
 var (
 	appName = "Task service" // название сервиса
 	version = "1.0" // версия
-	date    = "2017-12-12" // дата сборки
+	date    = "2017-12-13" // дата сборки
 	host    = ":8080" // адрес сервера и порт
 )
 
@@ -56,6 +56,8 @@ func main() {
 
 	model.GormInit();
 	defer model.GormClose();
+
+	log.Printf("%s %s (%s) is starting on host: %s", appName, version, date, host)
 
 	if err := http.ListenAndServe(host, r); err!=nil {
 		log.Fatal("Can't start server. Error: ", err)

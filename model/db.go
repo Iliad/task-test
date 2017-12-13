@@ -25,6 +25,7 @@ func GormInit() {
 	if err != nil {
 		log.Fatal("Can't open db connection. Error: ", err)
 	}
+	log.Println("Connected to db")
 }
 
 //Закрытие бд
